@@ -162,15 +162,23 @@ const statsFetcher = async ({
  * Fetch total commits using the REST API.
  *
  * @param {object} variables Fetcher variables.
+ * @param {string} variables.login GitHub username.
+ * @param {number|undefined} variables.year Year to filter commits (optional).
  * @param {string} token GitHub token.
  * @returns {Promise<import('axios').AxiosResponse>} Axios response.
  *
  * @see https://developer.github.com/v3/search/#search-commits
  */
 const fetchTotalCommits = (variables, token) => {
+  // Build search query: author:username + optional year filter
+  let query = `author:${variables.login}`;
+  if (variables.year) {
+    query += ` committer-date:${variables.year}-01-01..${variables.year}-12-31`;
+  }
+  
   return axios({
     method: "get",
-    url: `https://api.github.com/search/commits?q=author:${variables.login}`,
+    url: `https://api.github.com/search/commits?q=${encodeURIComponent(query)}`,
     headers: {
       "Content-Type": "application/json",
       Accept: "application/vnd.github.cloak-preview",
@@ -183,12 +191,13 @@ const fetchTotalCommits = (variables, token) => {
  * Fetch all the commits for all the repositories of a given username.
  *
  * @param {string} username GitHub username.
+ * @param {number|undefined} year Optional year to filter commits.
  * @returns {Promise<number>} Total commits.
  *
  * @description Done like this because the GitHub API does not provide a way to fetch all the commits. See
  * #92#issuecomment-661026467 and #211 for more information.
  */
-const totalCommitsFetcher = async (username) => {
+const totalCommitsFetcher = async (username, year) => {
   if (!githubUsernameRegex.test(username)) {
     logger.log("Invalid username provided.");
     throw new Error("Invalid username provided.");
@@ -196,7 +205,7 @@ const totalCommitsFetcher = async (username) => {
 
   let res;
   try {
-    res = await retryer(fetchTotalCommits, { login: username });
+    res = await retryer(fetchTotalCommits, { login: username, year });
   } catch (err) {
     logger.log(err);
     throw new Error(err);
@@ -285,10 +294,11 @@ const fetchStats = async (
 
   stats.name = user.name || user.login;
 
-  // if include_all_commits, fetch all commits using the REST API.
+  // if include_all_commits, fetch all commits using the REST API (includes org commits).
   if (include_all_commits) {
-    stats.totalCommits = await totalCommitsFetcher(username);
+    stats.totalCommits = await totalCommitsFetcher(username, commits_year);
   } else {
+    // Use GraphQL contributions (personal repos only, but respects time range)
     stats.totalCommits = user.commits.totalCommitContributions;
   }
 

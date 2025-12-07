@@ -211,9 +211,9 @@ class Card {
     const verticalOffset = 5; // Card shifted down by 5px
     return `
       <svg
-        width="${this.width + viewBoxPadding}"
-        height="${this.height + viewBoxPadding + verticalOffset}"
-        viewBox="-${viewBoxPadding} -${viewBoxPadding} ${this.width + viewBoxPadding} ${this.height + viewBoxPadding + verticalOffset}"
+        width="${this.width + viewBoxPadding * 2}"
+        height="${this.height + viewBoxPadding * 2 + verticalOffset}"
+        viewBox="-${viewBoxPadding} -${viewBoxPadding} ${this.width + viewBoxPadding * 2} ${this.height + viewBoxPadding * 2 + verticalOffset}"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         role="img"
